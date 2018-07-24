@@ -7,6 +7,7 @@ var server = require('http').createServer(app)
 var io = require('socket.io')(server)
 var redis = require('redis')
 var cors = require('cors')
+const {promisify} = require('util')
 require('dotenv').config()
 var port = process.env.PORT || 3000
 
@@ -52,29 +53,190 @@ checktoken = (token) => {
 }
 
 /**
+ * Redis client
+ */
+const fields = ['count', 'message', 'history'];
+var rClient = redis.createClient();
+rClient.on('error', (err) => {
+  console.log('Error ' + err);
 });
+/**
+ * Create async/await redis functions
+ */
+const hgetAsync     = promisify(rClient.hget).bind(rClient);
+const hgetallAsync  = promisify(rClient.hgetall).bind(rClient);
+const hincrbyAsync  = promisify(rClient.hincrby).bind(rClient);
+const hsetAsync     = promisify(rClient.hset).bind(rClient);
 
+/**
+ * Room general logic functions
+ */
+prepareRoom = (roomKey) => {
+  fields.forEach((val, index) => {
+    if(index === 0)
+      rClient.hsetnx(roomKey, [val, 0]);
+    else if(index === 1)
+      rClient.hsetnx(roomKey, [val, '']);
+    else if(index === 2)
+      rClient.hsetnx(roomKey, [val, '']);
+  });
+}
 
-// socket.io `view` namespace
-var ioView = io
-  .of('/view')
-  .on('connection', (socket) => {
-    let room = 'ssr';
+emitRoomData = async (s, key) => {
+  const res = await hgetallAsync(key);
 
-    socket.join(room);
+  if(res === null) {
+    prepareRoom(key);
+    emitRoomData(s, key);
+  } else {
+    s.emit('roomData', res);
+  }
+}
+
+/**
+ * Room count logic functions
+ */
+broadcastRoomCount = async (s, key) => {
+  const res = await hgetAsync(key, fields[0]);
+
+  s.broadcast.emit('roomCount', res);
+}
+
+roomCountIncrBy = (key, incrby) => {
+  hincrbyAsync(key, fields[0], incrby);
+}
+
+roomCountSet = (key, val) => {
+  hsetAsync(key, fields[0], val);
+}
+
+/**
+ * Room message logic functions
+ */
+broadcastRoomMessage = async (s, key) => {
+  const res = await hgetAsync(key, fields[1]);
+
+  s.broadcast.emit('roomMessage', res)
+}
+
+roomMessageSet = (key, val) => {
+  hsetAsync(key, fields[1], val);
+}
+
+/**
+ * 
+ * Socket.io interface
+ * 
+ */
+
+/**
+ * Authentication middleware
+ */
+io.use((socket, next) => {
+  if(socket.handshake.query) {
+    if(socket.handshake.query.roomKey) {
+      socket.roomKey = socket.handshake.query.roomKey;
+      socket.join(socket.roomKey);
+    }
+
+    // @TODO
+    // on invalid token catch error
+    if(socket.handshake.query.token && checktoken(socket.handshake.query.token)) {
+      console.log('auth');
+      next();
+    } else {
+      console.log('unauth');
+      next(new Error('Authentication error'));
+    }
+  } else {
+    // no auth
+    // no roomKey
+    // @TODO
+    next();
+  }
+})
+/**
+ * Socket request handlers
+ */
+.on('connection', (socket) => {
+  socket.on('room join', (roomKey) => {
+    socket.join(roomKey);
+  });
+  
+  /**
+   * Room specific handlers
+   */
+  if(socket.roomKey) {
+    const roomKey = socket.roomKey;
+
+    emitRoomData(socket, roomKey);
     
-    // socket emit current count of room
-    // socket emit current history of room
-    // socket emit current message of room
-  });
+    socket.on('room leave', () => {
+      socket.leave(roomKey);
+    });
 
-// socket.io `count` namespace
-var ioCount = io
-  .of('/count')
-  .on('connection', (socket) => {
-    let room = 'ssr';
+    socket.on('room get', () => {
+      emitRoomData(socket, roomKey);
+    });
 
-    socket.join(room);
+    /**
+     * Room count handlers
+     */
+    socket.on('count increase', () => {
+      // update history
+      roomCountIncrBy(roomKey, 1);
+      
+      broadcastRoomCount(socket, roomKey);
 
+      // log
+    });
+
+    socket.on('count decrease', () => {
+      // update history
+      roomCountIncrBy(roomKey, -1);
+      
+      broadcastRoomCount(socket, roomKey);
+
+      // log
+    });
+
+    socket.on('count set', (count) => {
+      // update history
+      roomCountSet(roomKey, count);
+
+      broadcastRoomCount(socket, roomKey);
+
+      // log
+    });
+
+    socket.on('count reset', () => {
+      // update history
+      roomCountSet(roomKey, 0);
+
+      broadcastRoomCount(socket, roomKey);
+
+      // log
+    });
+
+    /**
+     * Room message handlers
+     */
+    socket.on('message set', (message) => {
+      roomMessageSet(roomKey, message);
+
+      broadcastRoomMessage(socket, roomKey);
+    });
+
+    socket.on('message clear', () => {
+      roomMessageSet(roomKey, '');
+
+      broadcastRoomMessage(socket, roomKey);
+    });
+  
+    /**
+     * Room history handlers
+     */
+    // implement authorization for other on's
     // socket logic functions
-  });
+  }
+});
