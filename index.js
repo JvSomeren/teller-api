@@ -5,7 +5,24 @@ var fs = require('fs')
 var server = require('http').createServer(app)
 var io = require('socket.io')(server)
 var redis = require('redis')
+var cors = require('cors')
 var port = process.env.PORT || 3000
+
+/**
+ * Configure CORS
+ */
+const whitelist = [
+  'http://localhost:8080',
+  '/\.ssr-leiden\.nl$',
+  '/\.joostvansomeren\.nl$'
+];
+const corsOptions = {
+  orign: whitelist,
+  optionsSuccessStatus: 200,
+  credentials: true,
+}
+
+app.use(cors(corsOptions));
 
 server.listen(port, () => {
   console.log('Server listening at port %d', port);
