@@ -3,16 +3,23 @@
   "version": "2.0.1",
   "description": "A synchronous counter using socket.io",
   "dependencies": {
+    "cors": "^2.8.4",
+    "dotenv": "^6.0.0",
     "express": "^4.16.3",
+    "jsonwebtoken": "^8.3.0",
     "redis": "^2.8.0",
     "socket.io": "^2.1.1"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": ""
+  },
+  "devDependencies": {
+    "nodemon": "^1.17.5"
   }
 }
