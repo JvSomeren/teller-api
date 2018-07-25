@@ -11,15 +11,17 @@ Requests = {
 /**
  * GET parameters
  */
-const roomKey     = Requests.QueryString('room');
-const showMessage = (Requests.QueryString('message') === 'true');
-const fontSize    = Requests.QueryString('fontSize');
-const background  = Requests.QueryString('background');
-const color       = Requests.QueryString('color');
+const roomKey         = Requests.QueryString('room');
+const showMessage     = (Requests.QueryString('message') === 'true');
+const fontSizeCount   = Requests.QueryString('fontSizeCount');
+const fontSizeMessage = Requests.QueryString('fontSizeMessage');
+const background      = Requests.QueryString('background');
+const color           = Requests.QueryString('color');
 
 /**
  * DOM elements
  */
+const bodyEle     = document.querySelector('body');
 const countEle    = document.getElementById('count');
 const messageEle  = document.getElementById('message');
 
@@ -34,6 +36,22 @@ setMessage = (message) => {
   if(showMessage) {
     messageEle.innerHTML = message;
   }
+}
+
+if(fontSizeCount) {
+  countEle.style.fontSize = fontSizeCount + 'vh';
+}
+
+if(fontSizeMessage) {
+  messageEle.style.fontSize = fontSizeMessage + 'vh';
+}
+
+if(background) {
+  bodyEle.style.background = '#' + background;
+}
+
+if(color) {
+  bodyEle.style.color = '#' + color;
 }
 
 /**
