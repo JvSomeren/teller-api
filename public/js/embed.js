@@ -64,19 +64,14 @@ let socket = io(ioHost, {
 });
 
 socket.on('roomData', (data) => {
-  console.log(data);
-  setTimeout(() => {
-    setCount(data.count);
-    setMessage(data.message);
-  }, 1000);
+  setCount(data.count);
+  setMessage(data.message);
 });
 
 socket.on('roomCount', (count) => {
-  console.log(count);
   setCount(count);
 });
 
 socket.on('roomMessage', (message) => {
-  console.log(message);
   setMessage(message);
 });

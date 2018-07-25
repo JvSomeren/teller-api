@@ -160,16 +160,13 @@ io.use((socket, next) => {
     }
 
     if(socket.handshake.query.token && checktoken(socket.handshake.query.token)) {
-      console.log('auth');
       socket.authenticated = true;
       next();
     } else {
-      console.log('unauth');
       socket.authenticated = false;
       next();
     }
   } else {
-    console.log('no roomkey');
     next();
   }
 })
@@ -209,8 +206,6 @@ io.use((socket, next) => {
         roomCountIncrBy(roomKey, 1);
         
         broadcastRoomCount(socket, roomKey);
-  
-        // log
       });
   
       socket.on('count decrease', () => {
@@ -218,8 +213,6 @@ io.use((socket, next) => {
         roomCountIncrBy(roomKey, -1);
         
         broadcastRoomCount(socket, roomKey);
-  
-        // log
       });
   
       socket.on('count set', (count) => {
@@ -227,8 +220,6 @@ io.use((socket, next) => {
         roomCountSet(roomKey, count);
   
         broadcastRoomCount(socket, roomKey);
-  
-        // log
       });
   
       socket.on('count reset', () => {
@@ -236,8 +227,6 @@ io.use((socket, next) => {
         roomCountSet(roomKey, 0);
   
         broadcastRoomCount(socket, roomKey);
-  
-        // log
       });
   
       /**
