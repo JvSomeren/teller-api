@@ -139,19 +139,17 @@ io.use((socket, next) => {
       socket.join(socket.roomKey);
     }
 
-    // @TODO
-    // on invalid token catch error
     if(socket.handshake.query.token && checktoken(socket.handshake.query.token)) {
       console.log('auth');
+      socket.authenticated = true;
       next();
     } else {
       console.log('unauth');
-      next(new Error('Authentication error'));
+      socket.authenticated = false;
+      next();
     }
   } else {
-    // no auth
-    // no roomKey
-    // @TODO
+    console.log('no roomkey');
     next();
   }
 })
@@ -180,63 +178,66 @@ io.use((socket, next) => {
     });
 
     /**
-     * Room count handlers
+     * Authenticated user handlers
      */
-    socket.on('count increase', () => {
-      // update history
-      roomCountIncrBy(roomKey, 1);
-      
-      broadcastRoomCount(socket, roomKey);
-
-      // log
-    });
-
-    socket.on('count decrease', () => {
-      // update history
-      roomCountIncrBy(roomKey, -1);
-      
-      broadcastRoomCount(socket, roomKey);
-
-      // log
-    });
-
-    socket.on('count set', (count) => {
-      // update history
-      roomCountSet(roomKey, count);
-
-      broadcastRoomCount(socket, roomKey);
-
-      // log
-    });
-
-    socket.on('count reset', () => {
-      // update history
-      roomCountSet(roomKey, 0);
-
-      broadcastRoomCount(socket, roomKey);
-
-      // log
-    });
-
-    /**
-     * Room message handlers
-     */
-    socket.on('message set', (message) => {
-      roomMessageSet(roomKey, message);
-
-      broadcastRoomMessage(socket, roomKey);
-    });
-
-    socket.on('message clear', () => {
-      roomMessageSet(roomKey, '');
-
-      broadcastRoomMessage(socket, roomKey);
-    });
+    if(socket.authenticated) {
+      /**
+       * Room count handlers
+       */
+      socket.on('count increase', () => {
+        // update history
+        roomCountIncrBy(roomKey, 1);
+        
+        broadcastRoomCount(socket, roomKey);
   
-    /**
-     * Room history handlers
-     */
-    // implement authorization for other on's
-    // socket logic functions
+        // log
+      });
+  
+      socket.on('count decrease', () => {
+        // update history
+        roomCountIncrBy(roomKey, -1);
+        
+        broadcastRoomCount(socket, roomKey);
+  
+        // log
+      });
+  
+      socket.on('count set', (count) => {
+        // update history
+        roomCountSet(roomKey, count);
+  
+        broadcastRoomCount(socket, roomKey);
+  
+        // log
+      });
+  
+      socket.on('count reset', () => {
+        // update history
+        roomCountSet(roomKey, 0);
+  
+        broadcastRoomCount(socket, roomKey);
+  
+        // log
+      });
+  
+      /**
+       * Room message handlers
+       */
+      socket.on('message set', (message) => {
+        roomMessageSet(roomKey, message);
+  
+        broadcastRoomMessage(socket, roomKey);
+      });
+  
+      socket.on('message clear', () => {
+        roomMessageSet(roomKey, '');
+  
+        broadcastRoomMessage(socket, roomKey);
+      });
+    
+      /**
+       * Room history handlers
+       */
+    }
   }
 });
