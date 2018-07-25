@@ -38,6 +38,22 @@ server.listen(port, () => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 /**
+ * Shitty log function
+ */
+logCounter = async (key) => {
+  const res = await hgetAsync(key, fields[0]);
+
+  let log_file = './public/logs/' + key + '.log',
+      log_time_value = Date.now(),
+      log_time_date = new Date(),
+      log_data = res + ' ' + log_time_value + ' ' + log_time_date + '\n';
+
+  fs.appendFile(log_file, log_data, (err) => {
+    if(err) throw err;
+  });
+}
+
+/**
  * JWT token validation
  */
 checktoken = (token) => {
@@ -104,10 +120,14 @@ broadcastRoomCount = async (s, key) => {
 
 roomCountIncrBy = (key, incrby) => {
   hincrbyAsync(key, fields[0], incrby);
+
+  logCounter(key);
 }
 
 roomCountSet = (key, val) => {
   hsetAsync(key, fields[0], val);
+
+  logCounter(key);
 }
 
 /**

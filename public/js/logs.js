@@ -51,4 +51,4 @@ httpGetAsync = (theUrl, callback) => {
 }
 
 const domain = window.location.href;
-httpGetAsync(`${domain}logs/teller.log`, processItems);
+httpGetAsync(`${domain}logs/ssr.log`, processItems);
