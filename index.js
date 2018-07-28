@@ -148,13 +148,105 @@ roomMessageSet = (key, val) => {
  * Socket.io interface
  * 
  */
+const eventsGlobal = (socket) => {
+  socket.on('room join', (roomKey) => {
+    socket.join(roomKey);
+  });
+
+  socket.on('room leave', () => {
+    socket.leave(roomKey);
+  });
+
+  socket.on('room get', () => {
+    if(socket.roomKey)
+      emitRoomData(socket, socket.roomKey);
+  });
+}
+
+const eventsAuthenticated = (socket) => {
+  socket.removeAllListeners();
+  eventsGlobal(socket);
+
+  emitRoomData(socket, socket.roomKey);
+
+  // scope specific
+  socket.on('logout', () => {
+    socket.authenticated = false;
+    eventsUnauthenticated(socket);
+  });
+
+  /**
+   * Room count handlers
+   */
+  socket.on('count increase', () => {
+    // update history
+    roomCountIncrBy(socket.roomKey, 1);
+    
+    broadcastRoomCount(socket, socket.roomKey);
+  });
+
+  socket.on('count decrease', () => {
+    // update history
+    roomCountIncrBy(socket.roomKey, -1);
+    
+    broadcastRoomCount(socket, socket.roomKey);
+  });
+
+  socket.on('count set', (count) => {
+    // update history
+    roomCountSet(socket.roomKey, count);
+
+    broadcastRoomCount(socket, socket.roomKey);
+  });
+
+  socket.on('count reset', () => {
+    // update history
+    roomCountSet(socket.roomKey, 0);
+
+    broadcastRoomCount(socket, socket.roomKey);
+  });
+
+  /**
+   * Room message handlers
+   */
+  socket.on('message set', (message) => {
+    roomMessageSet(socket.roomKey, message);
+
+    broadcastRoomMessage(socket, socket.roomKey);
+  });
+
+  socket.on('message clear', () => {
+    roomMessageSet(socket.roomKey, '');
+
+    broadcastRoomMessage(socket, socket.roomKey);
+  });
+
+  /**
+   * Room history handlers
+   */
+}
+
+const eventsUnauthenticated = (socket) => {
+  socket.removeAllListeners();
+  eventsGlobal(socket);
+
+  emitRoomData(socket, socket.roomKey);
+
+  //scope specific
+  socket.on('login', (token) => {
+    if(token && checktoken(token)) {
+      socket.authenticated = true;
+      eventsAuthenticated(socket);
+    }
+  });
+}
 
 /**
  * Authentication middleware
  */
 io.use((socket, next) => {
   if(socket.handshake.query) {
-    if(socket.handshake.query.roomKey) {
+    if(socket.handshake.query.roomKey != 'null') {
       socket.roomKey = socket.handshake.query.roomKey;
       socket.join(socket.roomKey);
     }
@@ -174,79 +266,10 @@ io.use((socket, next) => {
  * Socket request handlers
  */
 .on('connection', (socket) => {
-  socket.on('room join', (roomKey) => {
-    socket.join(roomKey);
-  });
-  
-  /**
-   * Room specific handlers
-   */
-  if(socket.roomKey) {
-    const roomKey = socket.roomKey;
+  eventsGlobal(socket);
 
-    emitRoomData(socket, roomKey);
-    
-    socket.on('room leave', () => {
-      socket.leave(roomKey);
-    });
-
-    socket.on('room get', () => {
-      emitRoomData(socket, roomKey);
-    });
-
-    /**
-     * Authenticated user handlers
-     */
-    if(socket.authenticated) {
-      /**
-       * Room count handlers
-       */
-      socket.on('count increase', () => {
-        // update history
-        roomCountIncrBy(roomKey, 1);
-        
-        broadcastRoomCount(socket, roomKey);
-      });
-  
-      socket.on('count decrease', () => {
-        // update history
-        roomCountIncrBy(roomKey, -1);
-        
-        broadcastRoomCount(socket, roomKey);
-      });
-  
-      socket.on('count set', (count) => {
-        // update history
-        roomCountSet(roomKey, count);
-  
-        broadcastRoomCount(socket, roomKey);
-      });
-  
-      socket.on('count reset', () => {
-        // update history
-        roomCountSet(roomKey, 0);
-  
-        broadcastRoomCount(socket, roomKey);
-      });
-  
-      /**
-       * Room message handlers
-       */
-      socket.on('message set', (message) => {
-        roomMessageSet(roomKey, message);
-  
-        broadcastRoomMessage(socket, roomKey);
-      });
-  
-      socket.on('message clear', () => {
-        roomMessageSet(roomKey, '');
-  
-        broadcastRoomMessage(socket, roomKey);
-      });
-    
-      /**
-       * Room history handlers
-       */
-    }
-  }
+  if(socket.roomKey && socket.authenticated)
+    eventsAuthenticated(socket);
+  else if(socket.roomKey)
+    eventsUnauthenticated(socket);
 });
