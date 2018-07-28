@@ -115,7 +115,7 @@ emitRoomData = async (s, key) => {
 broadcastRoomCount = async (s, key) => {
   const res = await hgetAsync(key, fields[0]);
 
-  s.broadcast.emit('roomCount', res);
+  s.to(s.roomKey).emit('roomCount', res);
 }
 
 roomCountIncrBy = (key, incrby) => {
@@ -136,7 +136,7 @@ roomCountSet = (key, val) => {
 broadcastRoomMessage = async (s, key) => {
   const res = await hgetAsync(key, fields[1]);
 
-  s.broadcast.emit('roomMessage', res)
+  s.to(s.roomKey).emit('roomMessage', res)
 }
 
 roomMessageSet = (key, val) => {
