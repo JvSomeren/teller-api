@@ -57,21 +57,25 @@ if(color) {
 /**
  * Socket.io
  */
-const ioHost = window.location.origin;
-let socket = io(ioHost, {
-  path: '',
-  query: { roomKey: roomKey }
-});
+if(roomKey) {
+  const ioHost = window.location.origin;
+  let socket = io(ioHost, {
+    path: '',
+    query: { roomKey: roomKey }
+  });
 
-socket.on('roomData', (data) => {
-  setCount(data.count);
-  setMessage(data.message);
-});
+  socket.on('roomData', (data) => {
+    setCount(data.count);
+    setMessage(data.message);
+  });
 
-socket.on('roomCount', (count) => {
-  setCount(count);
-});
+  socket.on('roomCount', (count) => {
+    setCount(count);
+  });
 
-socket.on('roomMessage', (message) => {
-  setMessage(message);
-});
+  socket.on('roomMessage', (message) => {
+    setMessage(message);
+  });
+} else {
+  messageEle.innerHTML = 'Missing HTTP GET variable `room`';
+}
