@@ -194,9 +194,13 @@ const eventsAuthenticated = (socket) => {
 
   socket.on('count set', (count) => {
     // update history
-    roomCountSet(socket.roomKey, count);
+    const newCount = parseInt(count, 10);
 
-    broadcastRoomCount(socket, socket.roomKey);
+    if(!isNaN(newCount)) {
+      roomCountSet(socket.roomKey, newCount);
+
+      broadcastRoomCount(socket, socket.roomKey);
+    }
   });
 
   socket.on('count reset', () => {
